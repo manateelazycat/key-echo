@@ -56,19 +56,17 @@ class KeyEcho:
         self.event_loop = threading.Thread(target=self.event_dispatcher)
         self.event_loop.start()
 
-        # All LSP server response running in message_thread.
-        self.message_queue = queue.Queue()
-        self.message_thread = threading.Thread(target=self.message_dispatcher)
-        self.message_thread.start()
-
+        # Init xlib vars.
         self.emacs_xid = None
         self.disp = Display()
         self.root = self.disp.screen().root
         self.NET_ACTIVE_WINDOW = self.disp.intern_atom('_NET_ACTIVE_WINDOW')
 
+        # Init key event vars.
         self.last_press_key = None
         self.last_release_key = None
 
+        # Start key event listener thread.
         self.key_event_listener = threading.Thread(target=self.listen_key_event)
         self.key_event_listener.start()
 
@@ -90,7 +88,6 @@ class KeyEcho:
             self.last_press_key = key
 
     def key_release(self, key):
-        # print("****** ", key, self.get_active_window_id(), self.emacs_xid)
         if self.get_active_window_id() == self.get_emacs_xid():
             self.last_release_key = key
 
@@ -114,29 +111,8 @@ class KeyEcho:
         try:
             while True:
                 message = self.event_queue.get(True)
-            
-                if message["name"] == "open_file":
-                    self._open_file(message["content"])
-                elif message["name"] == "close_file":
-                    self._close_file(message["content"])
-                elif message["name"] == "action_func":
-                    (func_name, func_args) = message["content"]
-                    getattr(self, func_name)(*func_args)
-            
+                print(message)
                 self.event_queue.task_done()
-        except:
-            logger.error(traceback.format_exc())
-
-    def message_dispatcher(self):
-        try:
-            while True:
-                message = self.message_queue.get(True)
-                if message["name"] == "server_process_exit":
-                    self.handle_server_process_exit(message["content"])
-                else:
-                    logger.error("Unhandled key-echo message: %s" % message)
-            
-                self.message_queue.task_done()
         except:
             logger.error(traceback.format_exc())
 

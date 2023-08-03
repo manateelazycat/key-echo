@@ -79,8 +79,6 @@ class KeyEcho:
         self.event_loop.join()
 
     def listen_key_event(self):
-        self.emacs_xid = get_emacs_func_result("get-emacs-xid")
-
         while True:
             with kbListener(
                     on_press=self.key_press,
@@ -88,16 +86,22 @@ class KeyEcho:
                 listener.join()
 
     def key_press(self, key):
-        if self.get_active_window_id() == self.emacs_xid:
+        if self.get_active_window_id() == self.get_emacs_xid():
             self.last_press_key = key
 
     def key_release(self, key):
         # print("****** ", key, self.get_active_window_id(), self.emacs_xid)
-        if self.get_active_window_id() == self.emacs_xid:
+        if self.get_active_window_id() == self.get_emacs_xid():
             self.last_release_key = key
 
             if self.last_press_key == key:
                 eval_in_emacs("key-echo-single-key-trigger", str(key))
+
+    def get_emacs_xid(self):
+        if self.emacs_xid is None:
+            self.emacs_xid = get_emacs_func_result("get-emacs-xid")
+
+        return self.emacs_xid
 
     def get_active_window_id(self):
         response = self.root.get_full_property(self.NET_ACTIVE_WINDOW,

@@ -184,7 +184,8 @@ Then Key-Echo will start by gdb, please send new issue with `*key-echo*' buffer 
 (defun key-echo-start-process ()
   "Start Key-Echo process if it isn't started."
   (setq key-echo-is-starting t)
-  (unless (key-echo-epc-live-p key-echo-epc-process)
+  (if (key-echo-epc-live-p key-echo-epc-process)
+      (remove-hook 'post-command-hook #'key-echo-start-process)
     ;; start epc server and set `key-echo-server-port'
     (key-echo--start-epc-server)
     (let* ((key-echo-args (append
@@ -266,6 +267,9 @@ Then Key-Echo will start by gdb, please send new issue with `*key-echo*' buffer 
 (defun key-echo-single-key-trigger (key)
   (when key-echo-single-key-trigger-func
     (funcall key-echo-single-key-trigger-func key)))
+
+(defun key-echo-enable ()
+  (add-hook 'post-command-hook #'key-echo-start-process))
 
 (unless key-echo-is-starting
   (key-echo-start-process))

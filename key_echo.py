@@ -22,11 +22,13 @@ import queue
 import threading
 import traceback
 import sys
-from pathlib import Path
+from Xlib import X
+from Xlib.display import Display
+from pynput.keyboard import Listener as kbListener
 from epc.server import ThreadingEPCServer
-from utils import (init_epc_client, eval_in_emacs, logger, close_epc_client)
+from utils import *
 
-class PythonBridge:
+class KeyEcho:
     def __init__(self, args):
         # Init EPC client port.
         init_epc_client(int(args[0]))
@@ -59,11 +61,50 @@ class PythonBridge:
         self.message_thread = threading.Thread(target=self.message_dispatcher)
         self.message_thread.start()
 
+        self.emacs_xid = None
+        self.disp = Display()
+        self.root = self.disp.screen().root
+        self.NET_ACTIVE_WINDOW = self.disp.intern_atom('_NET_ACTIVE_WINDOW')
+
+        self.last_press_key = None
+        self.last_release_key = None
+
+        self.key_event_listener = threading.Thread(target=self.listen_key_event)
+        self.key_event_listener.start()
+
         # Pass epc port and webengine codec information to Emacs when first start key-echo.
         eval_in_emacs('key-echo--first-start', self.server.server_address[1])
 
         # event_loop never exit, simulation event loop.
         self.event_loop.join()
+
+    def listen_key_event(self):
+        self.emacs_xid = get_emacs_func_result("get-emacs-xid")
+
+        while True:
+            with kbListener(
+                    on_press=self.key_press,
+                    on_release=self.key_release) as listener:
+                listener.join()
+
+    def key_press(self, key):
+        if self.get_active_window_id() == self.emacs_xid:
+            self.last_press_key = key
+
+    def key_release(self, key):
+        # print("****** ", key, self.get_active_window_id(), self.emacs_xid)
+        if self.get_active_window_id() == self.emacs_xid:
+            self.last_release_key = key
+
+            if self.last_press_key == key:
+                eval_in_emacs("key-echo-single-key-trigger", str(key))
+
+    def get_active_window_id(self):
+        response = self.root.get_full_property(self.NET_ACTIVE_WINDOW,
+                                      X.AnyPropertyType)
+        win_id = response.value[0]
+
+        return win_id
 
     def event_dispatcher(self):
         try:
@@ -103,6 +144,6 @@ if __name__ == "__main__":
     if len(sys.argv) >= 3:
         import cProfile
         profiler = cProfile.Profile()
-        profiler.run("PythonBridge(sys.argv[1:])")
+        profiler.run("KeyEcho(sys.argv[1:])")
     else:
-        PythonBridge(sys.argv[1:])
+        KeyEcho(sys.argv[1:])

@@ -86,10 +86,13 @@
   "The Key-Echo Server.")
 
 (defvar key-echo-python-file (expand-file-name "key_echo.py" (if load-file-name
-                                                                           (file-name-directory load-file-name)
-                                                                         default-directory)))
+                                                                 (file-name-directory load-file-name)
+                                                               default-directory)))
 
 (defvar key-echo-server-port nil)
+
+(defcustom key-echo-single-key-trigger-func nil
+  "Method to call when single key trigger.")
 
 (defun key-echo--start-epc-server ()
   "Function to start the EPC server."
@@ -102,6 +105,7 @@
                (key-echo-epc-define-method mngr 'get-emacs-var 'key-echo--get-emacs-var-func)
                (key-echo-epc-define-method mngr 'get-emacs-vars 'key-echo--get-emacs-vars-func)
                (key-echo-epc-define-method mngr 'get-user-emacs-directory 'key-echo--user-emacs-directory)
+               (key-echo-epc-define-method mngr 'get-emacs-xid 'key-echo--get-emacs-xid)
                ))))
     (if key-echo-server
         (setq key-echo-server-port (process-contact key-echo-server :service))
@@ -159,7 +163,7 @@ Then Key-Echo will start by gdb, please send new issue with `*key-echo*' buffer 
   "Call Python EPC function METHOD and ARGS asynchronously."
   (if (key-echo-epc-live-p key-echo-epc-process)
       (key-echo-deferred-chain
-       (key-echo-epc-call-deferred key-echo-epc-process (read method) args))
+        (key-echo-epc-call-deferred key-echo-epc-process (read method) args))
     (setq key-echo-first-call-method method)
     (setq key-echo-first-call-args args)
     (key-echo-start-process)))
@@ -184,11 +188,11 @@ Then Key-Echo will start by gdb, please send new issue with `*key-echo*' buffer 
     ;; start epc server and set `key-echo-server-port'
     (key-echo--start-epc-server)
     (let* ((key-echo-args (append
-                                (list key-echo-python-file)
-                                (list (number-to-string key-echo-server-port))
-                                (when key-echo-enable-profile
-                                  (list "profile"))
-                                )))
+                           (list key-echo-python-file)
+                           (list (number-to-string key-echo-server-port))
+                           (when key-echo-enable-profile
+                             (list "profile"))
+                           )))
 
       ;; Set process arguments.
       (if key-echo-enable-debug
@@ -237,26 +241,31 @@ Then Key-Echo will start by gdb, please send new issue with `*key-echo*' buffer 
   "Call `key-echo--open-internal' upon receiving `start_finish' signal from server."
   ;; Make EPC process.
   (setq key-echo-epc-process (make-key-echo-epc-manager
-                                   :server-process key-echo-internal-process
-                                   :commands (cons key-echo-internal-process-prog key-echo-internal-process-args)
-                                   :title (mapconcat 'identity (cons key-echo-internal-process-prog key-echo-internal-process-args) " ")
-                                   :port key-echo-epc-port
-                                   :connection (key-echo-epc-connect "127.0.0.1" key-echo-epc-port)
-                                   ))
+                              :server-process key-echo-internal-process
+                              :commands (cons key-echo-internal-process-prog key-echo-internal-process-args)
+                              :title (mapconcat 'identity (cons key-echo-internal-process-prog key-echo-internal-process-args) " ")
+                              :port key-echo-epc-port
+                              :connection (key-echo-epc-connect "127.0.0.1" key-echo-epc-port)
+                              ))
   (key-echo-epc-init-epc-layer key-echo-epc-process)
   (setq key-echo-is-starting nil)
 
   (when (and key-echo-first-call-method
              key-echo-first-call-args)
     (key-echo-deferred-chain
-     (key-echo-epc-call-deferred key-echo-epc-process
-                                      (read key-echo-first-call-method)
-                                      key-echo-first-call-args)
-     (setq key-echo-first-call-method nil)
-     (setq key-echo-first-call-args nil)
-     ))
+      (key-echo-epc-call-deferred key-echo-epc-process
+                                  (read key-echo-first-call-method)
+                                  key-echo-first-call-args)
+      (setq key-echo-first-call-method nil)
+      (setq key-echo-first-call-args nil)
+      )))
 
-  (message "*******"))
+(defun key-echo--get-emacs-xid ()
+  (string-to-number (frame-parameter nil 'outer-window-id)))
+
+(defun key-echo-single-key-trigger (key)
+  (when key-echo-single-key-trigger-func
+    (funcall key-echo-single-key-trigger-func key)))
 
 (unless key-echo-is-starting
   (key-echo-start-process))

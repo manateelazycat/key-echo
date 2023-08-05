@@ -22,6 +22,7 @@ import queue
 import threading
 import traceback
 import sys
+import time
 from Xlib import X
 from Xlib.display import Display
 from pynput.keyboard import Listener as kbListener
@@ -65,6 +66,7 @@ class KeyEcho:
         # Init key event vars.
         self.last_press_key = None
         self.last_release_key = None
+        self.last_press_time = 0
 
         # Start key event listener thread.
         self.key_event_listener = threading.Thread(target=self.listen_key_event)
@@ -83,15 +85,20 @@ class KeyEcho:
                     on_release=self.key_release) as listener:
                 listener.join()
 
+    def get_current_time(self):
+        return time.time() * 1000
+
     def key_press(self, key):
         if self.get_active_window_id() == self.get_emacs_xid():
             self.last_press_key = key
+
+            self.last_press_time = self.get_current_time()
 
     def key_release(self, key):
         if self.get_active_window_id() == self.get_emacs_xid():
             self.last_release_key = key
 
-            if self.last_press_key == key:
+            if self.last_press_key == key and self.get_current_time() - self.last_press_time < 200:
                 eval_in_emacs("key-echo-single-key-trigger", str(key))
 
     def get_emacs_xid(self):

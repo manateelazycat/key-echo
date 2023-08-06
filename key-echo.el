@@ -105,7 +105,7 @@
                (key-echo-epc-define-method mngr 'get-emacs-var 'key-echo--get-emacs-var-func)
                (key-echo-epc-define-method mngr 'get-emacs-vars 'key-echo--get-emacs-vars-func)
                (key-echo-epc-define-method mngr 'get-user-emacs-directory 'key-echo--user-emacs-directory)
-               (key-echo-epc-define-method mngr 'get-emacs-xid 'key-echo--get-emacs-xid)
+               (key-echo-epc-define-method mngr 'get-emacs-id 'key-echo--get-emacs-id)
                ))))
     (if key-echo-server
         (setq key-echo-server-port (process-contact key-echo-server :service))
@@ -261,12 +261,10 @@ Then Key-Echo will start by gdb, please send new issue with `*key-echo*' buffer 
       (setq key-echo-first-call-args nil)
       )))
 
-(defun key-echo--get-emacs-xid ()
-  (pcase system-type
-    ;; When system type is darwin, outer-window-id is always nil
-    ;; So replaced by emacs-pid
-    (darwin (emacs-pid))
-    (t (string-to-number (frame-parameter nil 'outer-window-id)))))
+(defun key-echo--get-emacs-id ()
+  (if (eq system-type 'darwin)
+      (emacs-pid)
+    (string-to-number (frame-parameter nil 'outer-window-id))))
 
 (defun key-echo-single-key-trigger (key)
   (when key-echo-single-key-trigger-func

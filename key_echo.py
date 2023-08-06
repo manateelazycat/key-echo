@@ -56,13 +56,8 @@ class KeyEcho:
         self.event_loop = threading.Thread(target=self.event_dispatcher)
         self.event_loop.start()
 
+        # Init vars.
         self.emacs_xid = None
-        
-        if not self.isDarwin():
-            # When system type is not darwin, init xlib vars.
-            self.initXlib()
-
-        # Init key event vars.
         self.last_press_key = None
         self.last_release_key = None
         self.last_press_time = 0
@@ -77,14 +72,7 @@ class KeyEcho:
         # event_loop never exit, simulation event loop.
         self.event_loop.join()
 
-    def initXlib(self):
-        from Xlib import X
-        from Xlib.display import Display
-        self.disp = Display()
-        self.root = self.disp.screen().root
-        self.NET_ACTIVE_WINDOW = self.disp.intern_atom('_NET_ACTIVE_WINDOW')        
-
-    def isDarwin(self):
+    def is_darwin(self):
         return platform.system().lower() == "darwin"
 
     def listen_key_event(self):
@@ -98,37 +86,41 @@ class KeyEcho:
         return time.time() * 1000
 
     def key_press(self, key):
-        if self.get_active_window_id() == self.get_emacs_xid():
+        if self.get_active_window_id() == self.get_emacs_id():
             self.last_press_key = key
 
             self.last_press_time = self.get_current_time()
 
     def key_release(self, key):
-        if self.get_active_window_id() == self.get_emacs_xid():
+        if self.get_active_window_id() == self.get_emacs_id():
             self.last_release_key = key
 
             if self.last_press_key == key and self.get_current_time() - self.last_press_time < 200:
                 eval_in_emacs("key-echo-single-key-trigger", str(key))
 
-    def get_emacs_xid(self):
+    def get_emacs_id(self):
         if self.emacs_xid is None:
-            self.emacs_xid = get_emacs_func_result("get-emacs-xid")
+            self.emacs_xid = get_emacs_func_result("get-emacs-id")
 
         return self.emacs_xid
 
-    def get_active_window_id_osx(self):
-        from AppKit import NSWorkspace
-        return NSWorkspace.sharedWorkspace().activeApplication()['NSApplicationProcessIdentifier']            
     def get_active_window_id(self):
-        if self.isDarwin():
-            # When system type is Darwin, return MacOS pid of active application
-            return self.get_active_window_id_osx()
-        
-        response = self.root.get_full_property(self.NET_ACTIVE_WINDOW,
-                                      X.AnyPropertyType)
-        win_id = response.value[0]
+        if self.is_darwin():
+            from AppKit import NSWorkspace
+            return NSWorkspace.sharedWorkspace().activeApplication()['NSApplicationProcessIdentifier']
+        else:
+            from Xlib import X
+            from Xlib.display import Display
 
-        return win_id
+            if not hasattr(self, "NET_ACTIVE_WINDOW"):
+                self.disp = Display()
+                self.root = self.disp.screen().root
+                self.NET_ACTIVE_WINDOW = self.disp.intern_atom('_NET_ACTIVE_WINDOW')
+
+            response = self.root.get_full_property(self.NET_ACTIVE_WINDOW, X.AnyPropertyType)
+            win_id = response.value[0]
+
+            return win_id
 
     def event_dispatcher(self):
         try:

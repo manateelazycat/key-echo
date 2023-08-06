@@ -22,9 +22,8 @@ import queue
 import threading
 import traceback
 import sys
+import platform
 import time
-from Xlib import X
-from Xlib.display import Display
 from pynput.keyboard import Listener as kbListener
 from epc.server import ThreadingEPCServer
 from utils import *
@@ -57,11 +56,11 @@ class KeyEcho:
         self.event_loop = threading.Thread(target=self.event_dispatcher)
         self.event_loop.start()
 
-        # Init xlib vars.
         self.emacs_xid = None
-        self.disp = Display()
-        self.root = self.disp.screen().root
-        self.NET_ACTIVE_WINDOW = self.disp.intern_atom('_NET_ACTIVE_WINDOW')
+        
+        if not self.isDarwin():
+            # When system type is not darwin, init xlib vars.
+            self.initXlib()
 
         # Init key event vars.
         self.last_press_key = None
@@ -77,6 +76,16 @@ class KeyEcho:
 
         # event_loop never exit, simulation event loop.
         self.event_loop.join()
+
+    def initXlib(self):
+        from Xlib import X
+        from Xlib.display import Display
+        self.disp = Display()
+        self.root = self.disp.screen().root
+        self.NET_ACTIVE_WINDOW = self.disp.intern_atom('_NET_ACTIVE_WINDOW')        
+
+    def isDarwin(self):
+        return platform.system().lower() == "darwin"
 
     def listen_key_event(self):
         while True:
@@ -107,7 +116,14 @@ class KeyEcho:
 
         return self.emacs_xid
 
+    def get_active_window_id_osx(self):
+        from AppKit import NSWorkspace
+        return NSWorkspace.sharedWorkspace().activeApplication()['NSApplicationProcessIdentifier']            
     def get_active_window_id(self):
+        if self.isDarwin():
+            # When system type is Darwin, return MacOS pid of active application
+            return self.get_active_window_id_osx()
+        
         response = self.root.get_full_property(self.NET_ACTIVE_WINDOW,
                                       X.AnyPropertyType)
         win_id = response.value[0]

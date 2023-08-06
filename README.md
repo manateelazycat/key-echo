@@ -5,7 +5,7 @@ Key-Echo is an Emacs plugin that uses XRecord technology to listen to system key
 
 ## Installation
 1. Install Emacs 28 or above
-2. Install Python dependencies: epc, sexpdata, six, pynput: `pip3 install epc sexpdata six pynput`
+2. Install Python dependencies: epc, sexpdata, six, pynput, pyobjc (for macos): `pip3 install epc sexpdata six pynput`
 3. Download this repository with `git clone` and replace the load-path path in the configuration below
 4. Add the following code to your configuration file ~/.emacs:
 

@@ -262,7 +262,11 @@ Then Key-Echo will start by gdb, please send new issue with `*key-echo*' buffer 
       )))
 
 (defun key-echo--get-emacs-xid ()
-  (string-to-number (frame-parameter nil 'outer-window-id)))
+  (pcase system-type
+    ;; When system type is darwin, outer-window-id is always nil
+    ;; So replaced by emacs-pid
+    (darwin (emacs-pid))
+    (t (string-to-number (frame-parameter nil 'outer-window-id)))))
 
 (defun key-echo-single-key-trigger (key)
   (when key-echo-single-key-trigger-func

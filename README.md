@@ -5,8 +5,11 @@ Key-Echo is an Emacs plugin that uses XRecord technology to listen to system key
 
 ## Installation
 1. Install Emacs 28 or above
-2. Install Python dependencies: epc, sexpdata, six, pynput, pyobjc (for macos): `pip3 install epc sexpdata six pynput`
-3. Download this repository with `git clone` and replace the load-path path in the configuration below
+2. Install Python dependencies: 
+ - Linux: `pip3 install epc sexpdata six pynput`
+ - Windows: `pip3 install epc sexpdata six pynput pygetwindow`
+ - macOS: `pip3 install epc sexpdata six pynput pyobjc`
+3. Use `git clone` to download this repository, and replace the load-path path in the configuration below
 4. Add the following code to your configuration file ~/.emacs:
 
 ```elisp
@@ -28,6 +31,3 @@ After adding the above settings, you can freely switch the input method by press
 
 ## Options
 * key-echo-keyboard-quit-key: We cannot implement the `Ctrl + g` function by calling the `keyboard-quit` function, so the default setting for `key-echo-keyboard-quit-key` is `Key.alt_r` to achieve the function of sending the `Ctrl + g` key to Emacs when the user presses the right Alt key, to achieve the goal of quickly pressing Ctrl + g.
-
-## Remarks
-Currently supports Linux and macOS, theoretically it can support Windows, contributions are welcome.

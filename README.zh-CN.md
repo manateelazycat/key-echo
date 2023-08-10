@@ -5,7 +5,10 @@ Key-Echo 是一个利用 XRecord 技术监听系统按键事件的 Emacs 插件�
 
 ## 安装
 1. 安装 Emacs 28 及以上版本
-2. 安装 Python 依赖: epc, sexpdata, six, pynput: `pip3 install epc sexpdata six pynput`
+2. 安装 Python 依赖: 
+ - Linux: `pip3 install epc sexpdata six pynput`
+ - Windows: `pip3 install epc sexpdata six pynput pygetwindow`
+ - macOS: `pip3 install epc sexpdata six pynput pyobjc`
 3. 用 `git clone` 下载此仓库， 并替换下面配置中的 load-path 路径
 4. 把下面代码加入到你的配置文件 ~/.emacs 中：
 
@@ -28,6 +31,3 @@ Key-Echo 是一个利用 XRecord 技术监听系统按键事件的 Emacs 插件�
 
 ## 选项
 * key-echo-keyboard-quit-key: 我们无法通过调用 `keyboard-quit` 函数来实现 `Ctrl + g` 的功能， 所以默认设置 `key-echo-keyboard-quit-key` 为 `Key.alt_r` 来实现当用户按右边的 Alt 键时， 发送 `Ctrl + g` 按键给 Emacs， 来实现快速按 Ctrl + g 的目标 
-
-## 备注
-目前只支持 Linux 和 macOS， 理论上可以支持 Windows, 欢迎贡献代码。

@@ -113,10 +113,14 @@ class KeyEcho:
         return self.keyboard_quit_key
 
     def get_emacs_id(self):
-        if self.emacs_xid is None:
-            self.emacs_xid = get_emacs_func_result("get-emacs-id")
+        if platform.system() == "Windows":
+            import pygetwindow as gw
+            return gw.getActiveWindow()._hWnd
+        else:
+            if self.emacs_xid is None:
+                self.emacs_xid = get_emacs_func_result("get-emacs-id")
 
-        return self.emacs_xid
+            return self.emacs_xid
 
     def get_active_window_id(self):
         if self.is_darwin():

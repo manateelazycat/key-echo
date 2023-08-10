@@ -82,6 +82,13 @@
   "Key-Echo group."
   :group 'applications)
 
+(defcustom key-echo-keyboard-quit-key "Key.alt_r"
+  "`keyboard-quit' is binding to Ctrl + g in Emacs.
+
+We can't call function `keyboard-quit' to implement same effect like Ctrl + g.
+
+So we use right Alt to send key `C-g' to Emacs.")
+
 (defvar key-echo-server nil
   "The Key-Echo Server.")
 

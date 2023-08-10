@@ -25,6 +25,7 @@ import sys
 import platform
 import time
 from pynput.keyboard import Listener as kbListener
+from pynput.keyboard import Controller, Key
 from epc.server import ThreadingEPCServer
 from utils import *
 
@@ -61,6 +62,8 @@ class KeyEcho:
         self.last_press_key = None
         self.last_release_key = None
         self.last_press_time = 0
+        self.keyboard = Controller()
+        self.keyboard_quit_key = None
 
         # Start key event listener thread.
         self.key_event_listener = threading.Thread(target=self.listen_key_event)
@@ -96,7 +99,18 @@ class KeyEcho:
             self.last_release_key = key
 
             if self.last_press_key == key and self.get_current_time() - self.last_press_time < 200:
-                eval_in_emacs("key-echo-single-key-trigger", str(key))
+                if str(self.last_press_key) == self.get_keyboard_quit_key():
+                    with self.keyboard.pressed(Key.ctrl):
+                        self.keyboard.press('g')
+                        self.keyboard.release('g')
+                else:
+                    eval_in_emacs("key-echo-single-key-trigger", str(key))
+
+    def get_keyboard_quit_key(self):
+        if self.keyboard_quit_key is None:
+            self.keyboard_quit_key = get_emacs_var("key-echo-keyboard-quit-key")
+
+        return self.keyboard_quit_key
 
     def get_emacs_id(self):
         if self.emacs_xid is None:

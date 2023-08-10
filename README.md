@@ -26,5 +26,8 @@ Key-Echo is an Emacs plugin that uses XRecord technology to listen to system key
 
 After adding the above settings, you can freely switch the input method by pressing Shift.
 
+## Options
+* key-echo-keyboard-quit-key: We cannot implement the `Ctrl + g` function by calling the `keyboard-quit` function, so the default setting for `key-echo-keyboard-quit-key` is `Key.alt_r` to achieve the function of sending the `Ctrl + g` key to Emacs when the user presses the right Alt key, to achieve the goal of quickly pressing Ctrl + g.
+
 ## Remarks
 Currently supports Linux and macOS, theoretically it can support Windows, contributions are welcome.

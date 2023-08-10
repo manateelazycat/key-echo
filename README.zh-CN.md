@@ -26,5 +26,8 @@ Key-Echo 是一个利用 XRecord 技术监听系统按键事件的 Emacs 插件�
 
 加上上面设置后， 按 Shift 可以自由切换输入法。
 
+## 选项
+* key-echo-keyboard-quit-key: 我们无法通过调用 `keyboard-quit` 函数来实现 `Ctrl + g` 的功能， 所以默认设置 `key-echo-keyboard-quit-key` 为 `Key.alt_r` 来实现当用户按右边的 Alt 键时， 发送 `Ctrl + g` 按键给 Emacs， 来实现快速按 Ctrl + g 的目标 
+
 ## 备注
 目前只支持 Linux， 理论上可以支持 Windows 和 macOS, 欢迎贡献代码。

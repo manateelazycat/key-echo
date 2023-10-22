@@ -76,11 +76,25 @@ class KeyEcho:
 
     def listen_key_event(self):
         if get_emacs_func_result("emacs-running-in-wayland-native"):
-            from libinput import LibInput, ContextType, KeyState, EventType
+            from libinput import LibInput, ContextType, KeyState, EventType, DeviceCapability
             import libevdev
+
+            kbd_devnode = []
 
             li = LibInput(context_type=ContextType.UDEV)
             li.assign_seat("seat0")
+            for event in li.events:
+                if (event.type == EventType.DEVICE_ADDED):
+                    if (event.device.capabilities == (DeviceCapability.KEYBOARD,)
+                        and event.device.keyboard.has_key(1)):
+                        kbd_devnode.append(event.device.sysname)
+                else:
+                    break
+
+            del li
+            li = LibInput(context_type=ContextType.PATH)
+            for devnode in kbd_devnode:
+                li.add_device("/dev/input/" + devnode)
 
             device = libevdev.Device()
             device.name = "Key Echo"

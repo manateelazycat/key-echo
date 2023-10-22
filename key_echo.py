@@ -24,8 +24,6 @@ import traceback
 import sys
 import platform
 import time
-from pynput.keyboard import Listener as kbListener
-from pynput.keyboard import Controller, Key
 from epc.server import ThreadingEPCServer
 from utils import *
 
@@ -51,18 +49,16 @@ class KeyEcho:
         # Start EPC server with sub-thread, avoid block Qt main loop.
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.start()
-        
+
         # All Emacs request running in event_loop.
         self.event_queue = queue.Queue()
         self.event_loop = threading.Thread(target=self.event_dispatcher)
         self.event_loop.start()
 
         # Init vars.
-        self.emacs_xid = None
+        self.emacs_id = None
         self.last_press_key = None
-        self.last_release_key = None
         self.last_press_time = 0
-        self.keyboard = Controller()
         self.keyboard_quit_key = None
 
         # Start key event listener thread.
@@ -79,6 +75,33 @@ class KeyEcho:
         return platform.system().lower() == "darwin"
 
     def listen_key_event(self):
+        if get_emacs_func_result("emacs-running-in-wayland-native"):
+            from libinput import LibInput, ContextType, KeyState, EventType
+            import libevdev
+
+            li = LibInput(context_type=ContextType.UDEV)
+            li.assign_seat("seat0")
+
+            device = libevdev.Device()
+            device.name = "Key Echo"
+            device.enable(libevdev.EV_KEY.KEY_G)
+            device.enable(libevdev.EV_KEY.KEY_LEFTCTRL)
+            self.uinput = device.create_uinput_device()
+
+            for event in li.events:
+                if (event.type == EventType.KEYBOARD_KEY
+                    and self.get_active_window_id() == self.get_emacs_id()):
+                    if event.key_state == KeyState.PRESSED:
+                        self.key_press_wayland(event)
+                    else:
+                        self.key_release_wayland(event)
+
+
+        from pynput.keyboard import Listener as kbListener
+        from pynput.keyboard import Controller
+
+        self.keyboard = Controller()
+
         while True:
             with kbListener(
                     on_press=self.key_press,
@@ -94,17 +117,43 @@ class KeyEcho:
 
             self.last_press_time = self.get_current_time()
 
+    def key_press_wayland(self, event):
+        self.last_press_key = event.key
+        self.last_press_time = self.get_current_time()
+
     def key_release(self, key):
         if self.get_active_window_id() == self.get_emacs_id():
-            self.last_release_key = key
-
             if self.last_press_key == key and self.get_current_time() - self.last_press_time < 200:
                 if str(self.last_press_key) == self.get_keyboard_quit_key():
+                    from pynput.keyboard import Key
+
                     with self.keyboard.pressed(Key.ctrl):
                         self.keyboard.press('g')
                         self.keyboard.release('g')
                 else:
                     eval_in_emacs("key-echo-single-key-trigger", str(key))
+
+    def key_release_wayland(self, event):
+        if self.last_press_key == event.key and self.get_current_time() - self.last_press_time < 200:
+            import libevdev
+            from libevdev import InputEvent
+
+            key_name = libevdev.evbit(1, event.key).name
+            if key_name == self.get_keyboard_quit_key():
+                event = [InputEvent(libevdev.EV_KEY.KEY_LEFTCTRL, value=1),
+                         InputEvent(libevdev.EV_SYN.SYN_REPORT, value=0),
+                         InputEvent(libevdev.EV_KEY.KEY_G, value=1),
+                         InputEvent(libevdev.EV_SYN.SYN_REPORT, value=0),
+                         InputEvent(libevdev.EV_KEY.KEY_G, value=0),
+			 InputEvent(libevdev.EV_SYN.SYN_REPORT, value=0),
+                         InputEvent(libevdev.EV_KEY.KEY_LEFTCTRL, value=0),
+                         InputEvent(libevdev.EV_SYN.SYN_REPORT, value=0)]
+
+                self.uinput.send_events(event)
+
+                self.last_press_key = None
+            else:
+                eval_in_emacs("key-echo-single-key-trigger", key_name)
 
     def get_keyboard_quit_key(self):
         if self.keyboard_quit_key is None:
@@ -116,16 +165,28 @@ class KeyEcho:
         if platform.system() == "Windows":
             import pygetwindow as gw
             return gw.getActiveWindow()._hWnd
-        else:
-            if self.emacs_xid is None:
-                self.emacs_xid = get_emacs_func_result("get-emacs-id")
+        elif current_desktop == "sway":
+            if self.emacs_id is None:
+                self.emacs_id = get_emacs_func_result("get-emacs-pid")
 
-            return self.emacs_xid
+            return self.emacs_id
+        else:
+            if self.emacs_id is None:
+                self.emacs_id = get_emacs_func_result("get-emacs-id")
+
+            return self.emacs_id
 
     def get_active_window_id(self):
         if self.is_darwin():
             from AppKit import NSWorkspace
             return NSWorkspace.sharedWorkspace().activeApplication()['NSApplicationProcessIdentifier']
+        elif current_desktop == "sway":
+            import subprocess
+
+            win_id = subprocess.Popen("swaymsg -t get_tree | jq -r '..|try select(.focused == true).pid'",
+                                      stdout=subprocess.PIPE,
+                                      shell=True)
+            return int(win_id.stdout.read().decode().strip())
         else:
             from Xlib import X
             from Xlib.display import Display

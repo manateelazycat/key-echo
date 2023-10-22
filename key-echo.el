@@ -113,6 +113,8 @@ So we use right Alt to send key `C-g' to Emacs.")
                (key-echo-epc-define-method mngr 'get-emacs-vars 'key-echo--get-emacs-vars-func)
                (key-echo-epc-define-method mngr 'get-user-emacs-directory 'key-echo--user-emacs-directory)
                (key-echo-epc-define-method mngr 'get-emacs-id 'key-echo--get-emacs-id)
+	       (key-echo-epc-define-method mngr 'get-emacs-pid 'emacs-pid)
+	       (key-echo-epc-define-method mngr 'emacs-running-in-wayland-native 'key-echo-emacs-running-in-wayland-native)
                ))))
     (if key-echo-server
         (setq key-echo-server-port (process-contact key-echo-server :service))
@@ -276,6 +278,9 @@ Then Key-Echo will start by gdb, please send new issue with `*key-echo*' buffer 
 (defun key-echo-single-key-trigger (key)
   (when key-echo-single-key-trigger-func
     (funcall key-echo-single-key-trigger-func key)))
+
+(defun key-echo-emacs-running-in-wayland-native ()
+  (eq window-system 'pgtk))
 
 (defun key-echo-enable ()
   (add-hook 'post-command-hook #'key-echo-start-process))

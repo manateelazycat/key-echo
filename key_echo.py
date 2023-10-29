@@ -75,7 +75,8 @@ class KeyEcho:
         return platform.system().lower() == "darwin"
 
     def listen_key_event(self):
-        if get_emacs_func_result("emacs-running-in-wayland-native"):
+        self.emacs_running_in_wayland_native = get_emacs_func_result("emacs-running-in-wayland-native")
+        if self.emacs_running_in_wayland_native:
             from libinput import LibInput, ContextType, KeyState, EventType, DeviceCapability
             import libevdev
 
@@ -164,8 +165,6 @@ class KeyEcho:
                          InputEvent(libevdev.EV_SYN.SYN_REPORT, value=0)]
 
                 self.uinput.send_events(event)
-
-                self.last_press_key = None
             else:
                 eval_in_emacs("key-echo-single-key-trigger", key_name)
 
@@ -179,28 +178,33 @@ class KeyEcho:
         if platform.system() == "Windows":
             import pygetwindow as gw
             return gw.getActiveWindow()._hWnd
-        elif current_desktop == "sway":
+        elif current_desktop in ["sway", "Hyprland"] and self.emacs_running_in_wayland_native:
             if self.emacs_id is None:
                 self.emacs_id = get_emacs_func_result("get-emacs-pid")
-
-            return self.emacs_id
         else:
             if self.emacs_id is None:
                 self.emacs_id = get_emacs_func_result("get-emacs-id")
 
-            return self.emacs_id
+        return self.emacs_id
 
     def get_active_window_id(self):
         if self.is_darwin():
             from AppKit import NSWorkspace
             return NSWorkspace.sharedWorkspace().activeApplication()['NSApplicationProcessIdentifier']
-        elif current_desktop == "sway":
+        elif current_desktop == "sway" and self.emacs_running_in_wayland_native:
             import subprocess
 
             win_id = subprocess.Popen("swaymsg -t get_tree | jq -r '..|try select(.focused == true).pid'",
                                       stdout=subprocess.PIPE,
                                       shell=True)
             return int(win_id.stdout.read().decode().strip())
+        elif current_desktop == "Hyprland" and self.emacs_running_in_wayland_native:
+            import subprocess
+            import json
+
+            win_id = subprocess.Popen("hyprctl -j activewindow", stdout=subprocess.PIPE, shell=True)
+            win_id = json.loads(win_id.stdout.read().decode())["pid"]
+            return win_id
         else:
             from Xlib import X
             from Xlib.display import Display

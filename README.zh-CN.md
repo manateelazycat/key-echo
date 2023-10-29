@@ -8,7 +8,7 @@ Key-Echo 是一个利用 XRecord 技术监听系统按键事件的 Emacs 插件�
 2. 安装 Python 依赖:
  - Linux:
    - X: `pip3 install epc sexpdata six pynput`
-   - Wayland: `pip3 install epc sexpdata six libinput libevdev`
+   - pgtk: `pip3 install epc sexpdata six libinput libevdev`
  - Windows: `pip3 install epc sexpdata six pynput pygetwindow`
  - macOS: `pip3 install epc sexpdata six pynput pyobjc`
 3. 用 `git clone` 下载此仓库， 并替换下面配置中的 load-path 路径

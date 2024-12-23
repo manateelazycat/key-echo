@@ -42,3 +42,14 @@ Key-Echo 是一个利用 XRecord 技术监听系统按键事件的 Emacs 插件�
 
 ## 选项
 * key-echo-keyboard-quit-key: 我们无法通过调用 `keyboard-quit` 函数来实现 `Ctrl + g` 的功能， 所以默认设置 `key-echo-keyboard-quit-key` 为 `Key.alt_r` 来实现当用户按右边的 Alt 键时， 发送 `Ctrl + g` 按键给 Emacs， 来实现快速按 Ctrl + g 的目标
+
+## 兼容 Python 3.13
+Python 3.13 会让 pynput 项目产生 ```TypeError: '_thread._ThreadHandle' object is not callable``` 的错误。
+
+pynput master 分支暂时还没有修复这个问题， 可以通过下面的方法来安装修正补丁：
+
+```
+git clone -b fixup/listener-thread-handle https://github.com/moses-palmer/pynput.git
+cd pynput
+sudo pip3 install . --break
+```

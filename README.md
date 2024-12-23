@@ -42,3 +42,14 @@ After adding the above settings, you can freely switch the input method by press
 
 ## Options
 * key-echo-keyboard-quit-key: We cannot implement the `Ctrl + g` function by calling the `keyboard-quit` function, so the default setting for `key-echo-keyboard-quit-key` is `Key.alt_r` to achieve the function of sending the `Ctrl + g` key to Emacs when the user presses the right Alt key, to achieve the goal of quickly pressing Ctrl + g.
+
+## Python 3.13 Compatibility
+Python 3.13 causes the pynput project to raise a ```TypeError: '_thread._ThreadHandle' object is not callable``` error.
+
+The pynput master branch hasn't fixed this issue yet. You can install the fix patch using the following method:
+
+```
+git clone -b fixup/listener-thread-handle https://github.com/moses-palmer/pynput.git
+cd pynput
+sudo pip3 install . --break
+```
